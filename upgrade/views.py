@@ -1,0 +1,142 @@
+from django.shortcuts import render
+
+# Create your views here.
+import json
+from random import randrange
+
+from django.http import HttpResponse
+from rest_framework.views import APIView
+
+from pyecharts.charts import Line
+from pyecharts import options as opts
+from django.views.decorators.csrf import csrf_exempt
+import time
+from demo.data_process import FileOperate
+import threading
+
+
+class DataProcess:
+    def __init__(self):
+        self.progress = 0
+        self.status = 0
+
+    def data_update(self):
+        if self.status == 1:
+            time.sleep(1)
+            self.progress += 1
+            if self.progress >= 99:
+                self.progress = 99
+        elif self.status == 2:
+            self.progress = 100
+        return {'value': self.progress}
+
+    def status_update(self, status=0):
+        if status == 0:
+            self.progress = 0
+        self.status = status
+
+
+dp = DataProcess()
+fo = FileOperate()
+
+
+# Create your views here.
+def response_as_json(data):
+    json_str = json.dumps(data)
+    response = HttpResponse(
+        json_str,
+        content_type="application/json",
+    )
+    response["Access-Control-Allow-Origin"] = "*"
+    return response
+
+
+def json_response(data, code=200):
+    data = {
+        "code": code,
+        "msg": "success",
+        "data": data,
+    }
+    return response_as_json(data)
+
+
+def json_error(error_string="error", code=500, **kwargs):
+    data = {
+        "code": code,
+        "msg": error_string,
+        "data": {}
+    }
+    data.update(kwargs)
+    return response_as_json(data)
+
+
+JsonResponse = json_response
+JsonError = json_error
+
+
+def line_base() -> Line:
+    line = (
+        Line()
+        .add_xaxis(list(range(10)))
+        .add_yaxis(series_name="", y_axis=[randrange(0, 100) for _ in range(10)])
+        .set_global_opts(
+            title_opts=opts.TitleOpts(title="动态数据"),
+            xaxis_opts=opts.AxisOpts(type_="value"),
+            yaxis_opts=opts.AxisOpts(type_="value")
+        )
+        .dump_options_with_quotes()
+    )
+    return line
+
+
+class ChartView(APIView):
+    def get(self, request, *args, **kwargs):
+        # js = json.loads(line_base())
+        js = dp.data_update()
+        form = {"username": "root", "password": "root"}
+        info = dict(js, **form)
+        return JsonResponse(info)
+
+
+cnt = 9
+
+
+class ChartUpdateView(APIView):
+    def get(self, request, *args, **kwargs):
+        global cnt
+        cnt = cnt + 1
+        return JsonResponse({"name": cnt, "value": randrange(0, 100)})
+
+
+class IndexView(APIView):
+    def get(self, request, *args, **kwargs):
+        # return HttpResponse(content=open("./templates/index.html").read())
+        return render(request, 'index.html')
+
+
+@csrf_exempt
+def reg(request):
+    context = {}
+    vars_li = list(fo.read_json('config.json').keys())
+    s = [''] * len(vars_li)
+    dic = dict(zip(vars_li, s))
+    locals().update(dic)
+    if request.method == 'POST':
+        dp.status_update(status=0)
+        for var in vars_li:
+            vars()[var] = request.POST[var]
+            context[var] = eval(var)
+        print(context)
+        if context['username'] != '1' or context['password'] != '1':
+            return render(request, 'index.html', {'data': context})
+        dp.status_update(status=1)
+        wait = WaitFinishWork()
+        wait.start()
+    return render(request, 'index.html', {'data': context})
+
+
+class WaitFinishWork(threading.Thread):
+    def run(self):
+        time.sleep(20)
+        dp.status_update(status=2)
+
