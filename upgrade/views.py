@@ -7,12 +7,15 @@ from random import randrange
 from django.http import HttpResponse
 from rest_framework.views import APIView
 
-from pyecharts.charts import Line
-from pyecharts import options as opts
+# from pyecharts.charts import Line
+# from pyecharts import options as opts
 from django.views.decorators.csrf import csrf_exempt
 import time
-from demo.data_process import FileOperate
+from upgrade.data_process import FileOperate
 import threading
+from django.http import Http404
+from django.contrib.auth.decorators import login_required
+from learning_logs.models import Topic
 
 
 class DataProcess:
@@ -74,19 +77,19 @@ JsonResponse = json_response
 JsonError = json_error
 
 
-def line_base() -> Line:
-    line = (
-        Line()
-        .add_xaxis(list(range(10)))
-        .add_yaxis(series_name="", y_axis=[randrange(0, 100) for _ in range(10)])
-        .set_global_opts(
-            title_opts=opts.TitleOpts(title="动态数据"),
-            xaxis_opts=opts.AxisOpts(type_="value"),
-            yaxis_opts=opts.AxisOpts(type_="value")
-        )
-        .dump_options_with_quotes()
-    )
-    return line
+# def line_base() -> Line:
+#     line = (
+#         Line()
+#         .add_xaxis(list(range(10)))
+#         .add_yaxis(series_name="", y_axis=[randrange(0, 100) for _ in range(10)])
+#         .set_global_opts(
+#             title_opts=opts.TitleOpts(title="动态数据"),
+#             xaxis_opts=opts.AxisOpts(type_="value"),
+#             yaxis_opts=opts.AxisOpts(type_="value")
+#         )
+#         .dump_options_with_quotes()
+#     )
+#     return line
 
 
 class ChartView(APIView):
@@ -110,8 +113,17 @@ class ChartUpdateView(APIView):
 
 class IndexView(APIView):
     def get(self, request, *args, **kwargs):
-        # return HttpResponse(content=open("./templates/index.html").read())
-        return render(request, 'index.html')
+        """显示单个主题及其所有条目"""
+        env_id = request.GET['env_id']
+        topic = Topic.objects.get(id=int(env_id[1:]))
+
+        # 确认请求的主题属于当前用户
+        if topic.owner != request.user:
+            raise Http404
+
+        entries = topic.entry_set.order_by('-date_added')
+        context = {'topic': topic, 'entries': entries}
+        return render(request, 'index.html', context)
 
 
 @csrf_exempt
@@ -127,12 +139,31 @@ def reg(request):
             vars()[var] = request.POST[var]
             context[var] = eval(var)
         print(context)
-        if context['username'] != '1' or context['password'] != '1':
-            return render(request, 'index.html', {'data': context})
+        # if context['username'] != '1' or context['password'] != '1':
+        #     return render(request, 'index.html', {'data': context})
         dp.status_update(status=1)
         wait = WaitFinishWork()
         wait.start()
     return render(request, 'index.html', {'data': context})
+
+
+@csrf_exempt
+@login_required
+def upgrade_home(request):
+    context = {}
+    if request.method == 'POST':
+        env_id = request.POST['env_id']
+        """显示单个主题及其所有条目"""
+        topic = Topic.objects.get(id=int(env_id[1:]))
+
+        # 确认请求的主题属于当前用户
+        if topic.owner != request.user:
+            raise Http404
+
+        entries = topic.entry_set.order_by('-date_added')
+        context = {'topic': topic, 'entries': entries, 'envid': env_id}
+        print(entries[0].text)
+    return render(request, 'upgrade_home.html', context)
 
 
 class WaitFinishWork(threading.Thread):

@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     # 我的应用程序
     'learning_logs',
     'users',
+    'upgrade',
 ]
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
