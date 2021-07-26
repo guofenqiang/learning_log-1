@@ -5,7 +5,16 @@
 {% endblock header %}
 
 {% block content %}
-    <form method="post" action="/upgrade/reg/">
+    {% for entry in entries %}
+        <div class="panel panel-default">
+            <div class="panel-body">
+                {{ entry.text|linebreaks }}
+            </div>
+        </div> <!-- panel -->
+    {% empty %}
+        There are no entries for this topic yet.
+    {% endfor %}
+    <form method="post" action="/upgrade/reset/">
 <!--        {% csrf_token %}-->
         env username   <input type="text" name="username" value="root"><br>
         env password   <input type="text" name="password" value="root"><br>

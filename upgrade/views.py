@@ -127,7 +127,7 @@ class IndexView(APIView):
 
 
 @csrf_exempt
-def reg(request):
+def reset(request):
     context = {}
     vars_li = list(fo.read_json('config.json').keys())
     s = [''] * len(vars_li)
@@ -150,20 +150,23 @@ def reg(request):
 @csrf_exempt
 @login_required
 def upgrade_home(request):
-    context = {}
-    if request.method == 'POST':
-        env_id = request.POST['env_id']
-        """显示单个主题及其所有条目"""
-        topic = Topic.objects.get(id=int(env_id[1:]))
-
-        # 确认请求的主题属于当前用户
-        if topic.owner != request.user:
-            raise Http404
-
-        entries = topic.entry_set.order_by('-date_added')
-        context = {'topic': topic, 'entries': entries, 'envid': env_id}
-        print(entries[0].text)
+    """显示所有的主题"""
+    topics = Topic.objects.filter(owner=request.user).order_by('date_added')
+    context = {'topics': topics}
     return render(request, 'upgrade_home.html', context)
+
+@login_required
+def env_info(request, topic_id):
+    """显示单个主题及其所有条目"""
+    topic = Topic.objects.get(id=topic_id)
+
+    # 确认请求的主题属于当前用户
+    if topic.owner != request.user:
+        raise Http404
+
+    entries = topic.entry_set.order_by('-date_added')
+    context = {'topic': topic, 'entries': entries}
+    return render(request, 'index.html', context)
 
 
 class WaitFinishWork(threading.Thread):
