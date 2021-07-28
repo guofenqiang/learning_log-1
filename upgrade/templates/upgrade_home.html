@@ -9,7 +9,7 @@
         {% for topic in topics %}
             <li>
                 <h3>
-                    <a href="{% url 'upgrade:env_info' topic.id %}">{{ topic }} 号环境升级页面</a>
+                    <a href="{% url 'upgrade:reset' topic.id %}">{{ topic }} 号环境升级页面</a>
                 </h3>
             </li>
         {% empty %}

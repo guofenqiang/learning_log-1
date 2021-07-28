@@ -8,6 +8,5 @@ urlpatterns = [
     # url(r'^lineUpdate/$', views.ChartUpdateView.as_view(), name='lineUpdate'),
     url(r'^index/$', views.IndexView.as_view(), name='index'),
     # url(r'^index/$', views.index, name='index'),
-    url(r'^reset/$', views.reset, name='reset'),
-    path('upgrade_home/<int:topic_id>/', views.env_info, name='env_info'),
+    path(r'upgrade_home/reset/<int:topic_id>/', views.reset, name='reset'),
 ]

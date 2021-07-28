@@ -16,6 +16,7 @@ import threading
 from django.http import Http404
 from django.contrib.auth.decorators import login_required
 from learning_logs.models import Topic
+from multiprocessing import Process
 
 
 class DataProcess:
@@ -127,24 +128,39 @@ class IndexView(APIView):
 
 
 @csrf_exempt
-def reset(request):
-    context = {}
+@login_required
+def reset(request, topic_id):
+    data = {}
     vars_li = list(fo.read_json('config.json').keys())
     s = [''] * len(vars_li)
     dic = dict(zip(vars_li, s))
     locals().update(dic)
+
+    """显示单个主题及其所有条目"""
+    topic = Topic.objects.get(id=topic_id)
+
+    # 确认请求的主题属于当前用户
+    if topic.owner != request.user:
+        raise Http404
+
+    entries = topic.entry_set.order_by('-date_added')
+
     if request.method == 'POST':
         dp.status_update(status=0)
         for var in vars_li:
             vars()[var] = request.POST[var]
-            context[var] = eval(var)
-        print(context)
+            data[var] = eval(var)
+        print(data)
+        print(entries[0].text)
         # if context['username'] != '1' or context['password'] != '1':
         #     return render(request, 'index.html', {'data': context})
         dp.status_update(status=1)
-        wait = WaitFinishWork()
-        wait.start()
-    return render(request, 'index.html', {'data': context})
+        # wait = WaitFinishWork()
+        # wait.start()
+        t = threading.Thread(target=reset_os, args=(entries[0].text,))
+        t.start()
+    context = {'topic': topic, 'entries': entries, 'data': data}
+    return render(request, 'index.html', context)
 
 
 @csrf_exempt
@@ -155,22 +171,15 @@ def upgrade_home(request):
     context = {'topics': topics}
     return render(request, 'upgrade_home.html', context)
 
-@login_required
-def env_info(request, topic_id):
-    """显示单个主题及其所有条目"""
-    topic = Topic.objects.get(id=topic_id)
-
-    # 确认请求的主题属于当前用户
-    if topic.owner != request.user:
-        raise Http404
-
-    entries = topic.entry_set.order_by('-date_added')
-    context = {'topic': topic, 'entries': entries}
-    return render(request, 'index.html', context)
-
 
 class WaitFinishWork(threading.Thread):
     def run(self):
         time.sleep(20)
         dp.status_update(status=2)
+
+
+def reset_os(info):
+    for i in range(100):
+        print(info)
+        time.sleep(1)
 
