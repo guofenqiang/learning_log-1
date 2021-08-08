@@ -17,6 +17,8 @@ from django.http import Http404
 from django.contrib.auth.decorators import login_required
 from learning_logs.models import Topic
 from multiprocessing import Process
+import datetime
+import re
 
 
 class DataProcess:
@@ -92,11 +94,36 @@ JsonError = json_error
 #     )
 #     return line
 
+env_info = {}
+
 
 class ChartView(APIView):
     def get(self, request, *args, **kwargs):
         # js = json.loads(line_base())
-        js = dp.data_update()
+        # js = dp.data_update()
+        global env_info
+        env_id = request.GET['env_id']
+        pattern = r'\#(\d+)'
+        obj_regex = re.compile(pattern)
+        env_id = int(obj_regex.findall(env_id)[0])
+        if env_id in env_info.keys():
+            if env_info[env_id]['tid'].isAlive():
+                env_info[env_id]['flag'] = 0
+                start_time = env_info[env_id]['start_time']
+                now_time = datetime.datetime.now()
+                env_info[env_id]['cost_time'] = (now_time - start_time).seconds
+            else:
+                # 进程结束后再读一次时间
+                if env_info[env_id]['flag'] == 0:
+                    env_info[env_id]['flag'] = 1
+                    start_time = env_info[env_id]['start_time']
+                    now_time = datetime.datetime.now()
+                    env_info[env_id]['cost_time'] = (now_time - start_time).seconds
+
+        if env_info.get(env_id, None) and env_info.get(env_id, None).get('cost_time', None):
+            js = {'value': env_info[env_id]['cost_time']}
+        else:
+            js = {'value': 0}
         form = {"username": "root", "password": "root"}
         info = dict(js, **form)
         return JsonResponse(info)
@@ -130,6 +157,7 @@ class IndexView(APIView):
 @csrf_exempt
 @login_required
 def reset(request, topic_id):
+    global env_info
     data = {}
     vars_li = list(fo.read_json('config.json').keys())
     s = [''] * len(vars_li)
@@ -159,6 +187,9 @@ def reset(request, topic_id):
         # wait.start()
         t = threading.Thread(target=reset_os, args=(entries[0].text,))
         t.start()
+        start_time = datetime.datetime.now()
+        env_info[topic_id] = {"tid": t, 'start_time': start_time, 'cost_time': 0, 'flag': 0}
+
     context = {'topic': topic, 'entries': entries, 'data': data}
     return render(request, 'index.html', context)
 
@@ -180,6 +211,6 @@ class WaitFinishWork(threading.Thread):
 
 def reset_os(info):
     for i in range(100):
-        print(info)
+        print(i, info)
         time.sleep(1)
 

@@ -1,7 +1,7 @@
 {% extends 'learning_logs/base.html' %}
 
 {% block header %}
-    <h2>{{ user.username }}升级 {{ topic }} 环境</h2>
+    <h2 id="env_id">{{ user.username }}升级 {{ topic }} 环境</h2>
 {% endblock header %}
 
 {% block content %}
@@ -96,6 +96,9 @@
             $.ajax({
                 type: "GET",
                 url: "http://127.0.0.1:8000/upgrade/line",
+                data:{
+                    "env_id": $("#env_id").text(),
+                },
                 dataType: 'json',
                 success: function (result) {
                     var options = chart.getOption();
