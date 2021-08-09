@@ -1,3 +1,5 @@
+import django
+django.setup()
 from django.shortcuts import render
 
 # Create your views here.
@@ -80,20 +82,6 @@ JsonResponse = json_response
 JsonError = json_error
 
 
-# def line_base() -> Line:
-#     line = (
-#         Line()
-#         .add_xaxis(list(range(10)))
-#         .add_yaxis(series_name="", y_axis=[randrange(0, 100) for _ in range(10)])
-#         .set_global_opts(
-#             title_opts=opts.TitleOpts(title="动态数据"),
-#             xaxis_opts=opts.AxisOpts(type_="value"),
-#             yaxis_opts=opts.AxisOpts(type_="value")
-#         )
-#         .dump_options_with_quotes()
-#     )
-#     return line
-
 env_info = {}
 
 
@@ -107,7 +95,7 @@ class ChartView(APIView):
         obj_regex = re.compile(pattern)
         env_id = int(obj_regex.findall(env_id)[0])
         if env_id in env_info.keys():
-            if env_info[env_id]['tid'].isAlive():
+            if env_info[env_id]['tid'].is_alive():
                 env_info[env_id]['flag'] = 0
                 start_time = env_info[env_id]['start_time']
                 now_time = datetime.datetime.now()
@@ -185,10 +173,16 @@ def reset(request, topic_id):
         dp.status_update(status=1)
         # wait = WaitFinishWork()
         # wait.start()
-        t = threading.Thread(target=reset_os, args=(entries[0].text,))
-        t.start()
-        start_time = datetime.datetime.now()
-        env_info[topic_id] = {"tid": t, 'start_time': start_time, 'cost_time': 0, 'flag': 0}
+        action = request.POST['action']
+        if action == "reset":
+            t = Process(target=reset_os, args=(entries[0].text,))
+            t.start()
+            start_time = datetime.datetime.now()
+            env_info[topic_id] = {"tid": t, 'start_time': start_time, 'cost_time': 0, 'flag': 0}
+        elif action == "stop":
+            if env_info.get(topic_id, None):
+                env_info[topic_id]['tid'].terminate()
+                env_info[topic_id]['tid'].join()
 
     context = {'topic': topic, 'entries': entries, 'data': data}
     return render(request, 'index.html', context)

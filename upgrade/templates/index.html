@@ -18,7 +18,8 @@
 <!--        {% csrf_token %}-->
         env username   <input type="text" name="username" value="root"><br>
         env password   <input type="text" name="password" value="root"><br>
-                   <input type="submit" value="reset"><br>
+        <input type="submit" name="action" value="reset">
+        <input type="submit" name="action" value="stop"><br>
     </form>
     {% for key, value in data.items %}
     {{ key }} : {{ value }}<br>
@@ -109,21 +110,5 @@
             });
         }
 
-<!--        function getDynamicData() {-->
-<!--            $.ajax({-->
-<!--                type: "GET",-->
-<!--                url: "http://127.0.0.1:8000/upgrade/lineUpdate",-->
-<!--                dataType: 'json',-->
-<!--                success: function (result) {-->
-<!--                    var options = chart.getOption();-->
-<!--                    old_data.push([options.name, options.value]);-->
-<!--                    chart.setOption({-->
-<!--                        series: [{-->
-<!--                            data: old_data-->
-<!--                        }]-->
-<!--                    });-->
-<!--                }-->
-<!--            });-->
-<!--        }-->
     </script>
 {% endblock content %}
