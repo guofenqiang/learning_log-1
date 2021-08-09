@@ -101,7 +101,7 @@ class ChartView(APIView):
                 now_time = datetime.datetime.now()
                 env_info[env_id]['cost_time'] = (now_time - start_time).seconds
             else:
-                # 进程结束后再读一次时间
+                # 线程结束后再读一次时间
                 if env_info[env_id]['flag'] == 0:
                     env_info[env_id]['flag'] = 1
                     start_time = env_info[env_id]['start_time']
@@ -175,8 +175,19 @@ def reset(request, topic_id):
         # wait.start()
         action = request.POST['action']
         if action == "reset":
-            t = Process(target=reset_os, args=(entries[0].text,))
-            t.start()
+            if topic_id not in env_info.keys():
+                t = Process(target=reset_os, args=(entries[0].text,))
+                t.start()
+            elif topic_id in env_info and env_info[topic_id]['tid'].is_alive():
+                env_info[topic_id]['tid'].terminate()
+                env_info[topic_id]['tid'].join()
+                t = Process(target=reset_os, args=(entries[0].text,))
+                t.start()
+            elif topic_id in env_info and not env_info[topic_id]['tid'].is_alive():
+                t = Process(target=reset_os, args=(entries[0].text,))
+                t.start()
+            else:
+                t = None
             start_time = datetime.datetime.now()
             env_info[topic_id] = {"tid": t, 'start_time': start_time, 'cost_time': 0, 'flag': 0}
         elif action == "stop":
