@@ -91,22 +91,13 @@ class ChartView(APIView):
         # js = dp.data_update()
         global env_info
         env_id = request.GET['env_id']
-        pattern = r'\#(\d+)'
-        obj_regex = re.compile(pattern)
-        env_id = int(obj_regex.findall(env_id)[0])
+        env_id = int(env_id)
         if env_id in env_info.keys():
             if env_info[env_id]['tid'].is_alive():
                 env_info[env_id]['flag'] = 0
                 start_time = env_info[env_id]['start_time']
                 now_time = datetime.datetime.now()
                 env_info[env_id]['cost_time'] = (now_time - start_time).seconds
-            else:
-                # 线程结束后再读一次时间
-                if env_info[env_id]['flag'] == 0:
-                    env_info[env_id]['flag'] = 1
-                    start_time = env_info[env_id]['start_time']
-                    now_time = datetime.datetime.now()
-                    env_info[env_id]['cost_time'] = (now_time - start_time).seconds
 
         if env_info.get(env_id, None) and env_info.get(env_id, None).get('cost_time', None):
             js = {'value': env_info[env_id]['cost_time']}
