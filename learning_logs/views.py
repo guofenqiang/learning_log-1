@@ -97,3 +97,35 @@ def edit_entry(request, entry_id):
     context = {'entry': entry, 'topic': topic, 'form': form}
     return render(request, 'learning_logs/edite_entry.html', context)
 
+
+@login_required
+def delete_entry(request, entry_id):
+    '''删除选定条目'''
+    entry = Entry.objects.get(id=entry_id)
+    topic = entry.topic
+    check_topic_owner(topic, request)
+    entry.entry_hide = True
+    entry.delete()
+
+    return HttpResponseRedirect(reverse('learning_logs:topic', args=[topic.id]))
+
+
+@login_required
+def delete_topic(request, topic_id):
+    '''删除选定主题'''
+    topic = Topic.objects.get(id=topic_id)
+    check_topic_owner(topic, request)
+    topic.topic_hide = True
+    topic.delete()
+
+    return HttpResponseRedirect(reverse('learning_logs:topics'))
+
+
+def check_topic_owner(topic, request):
+    if topic.owner != request.user:
+        raise Http404
+
+
+def check_topic_public(topic, request):
+    if topic.public != True:
+        raise Http404

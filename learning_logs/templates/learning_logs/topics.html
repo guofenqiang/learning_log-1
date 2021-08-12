@@ -11,6 +11,10 @@
             <li>
                 <h3>
                     <a href="{% url 'learning_logs:topic' topic.id %}">{{ topic }}</a>
+                    {% if topic.owner == user %}
+                        <small><a href="{% url 'learning_logs:delete_topic' topic.id %}" class="ex1"
+                                  onclick="return confirm('永久删除此主题，请确认！');"> 删除</a></small>
+                    {% endif %}
                 </h3>
             </li>
         {% empty %}

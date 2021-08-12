@@ -1,6 +1,6 @@
 """定义learning_logs的URL模式"""
 
-from django.urls import path
+from django.urls import path, re_path
 
 from . import views
 
@@ -22,4 +22,10 @@ urlpatterns = [
 
     # 用于编辑条目的网页
     path('edit_entry/<int:entry_id>/', views.edit_entry, name='edit_entry'),
+
+    # 用于删除自有条目的页面
+    re_path('delete_entry/(?P<entry_id>\d+)/', views.delete_entry, name='delete_entry'),
+
+    # 用于删除自有主题的页面
+    re_path('delete_topic/(?P<topic_id>\d+)/', views.delete_topic, name='delete_topic'),
 ]
